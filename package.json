@@ -1,0 +1,46 @@
+{
+  "name": "@falcondev-oss/caps",
+  "type": "module",
+  "version": "0.2.2",
+  "description": "A simple library to handle permissions or access control through defining capabilities.",
+  "license": "MIT",
+  "repository": "github:falcondev-oss/caps",
+  "bugs": {
+    "url": "https://github.com/falcondev-oss/caps/issues"
+  },
+  "keywords": [
+    "permissions",
+    "access control",
+    "capabilities",
+    "typescript"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsup",
+    "lint:fix": "eslint --cache --fix . && prettier --cache --write .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@louishaftmann/eslint-config": "^4.0.3",
+    "@louishaftmann/prettier-config": "^4.0.3",
+    "eslint": "~9.14.0",
+    "prettier": "^3.4.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "changelogithub": {
+    "extends": "gh:falcondev-it/configs/changelogithub"
+  }
+}
