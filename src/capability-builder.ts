@@ -1,20 +1,67 @@
-/* eslint-disable no-shadow */
 import type { CapabilityResolver, inferCapabilitiesFromResolver, inferResolverArgs } from './types'
 
 export interface DefineCapabilitiesForOptions {
   createError?: (message: string) => void
 }
 
-export function defineCapabilitiesFor<Actor>(actor: Actor, opts?: DefineCapabilitiesForOptions) {
-  return <const CapabilityName extends string, Target = undefined>(
-    resolver: CapabilityName[] | ((actor: Actor) => CapabilityResolver<Target, CapabilityName>),
-  ) => {
-    return defineCapabilityQueryBuilder({
-      resolver: Array.isArray(resolver) ? resolver : resolver(actor),
-      opts,
-    })
+// export function defineCapabilitiesFor<Actor>(actor: Actor, opts?: DefineCapabilitiesForOptions) {
+//   return <const CapabilityName extends string, Target = undefined>(
+//     resolver: CapabilityName[] | (),
+//   ) => {
+//     return defineCapabilityQueryBuilder({
+//       resolver: Array.isArray(resolver) ? resolver : resolver(actor),
+//       opts,
+//     })
+//   }
+// }
+
+type ObjectToDiscriminatedUnion<T extends Record<string, Record<string, any> | undefined>> = {
+  [K in keyof T]: undefined extends T[K]
+    ? {
+        capability: K
+      }
+    : T[K] & {
+        capability: K
+      }
+}[keyof T]
+
+function defineCapabilityResolverBuilder<Actor>() {
+  return {
+    subject: <Subject>() => ({
+      capabilities: <Capabilities extends string>() => ({
+        args: <Args extends Partial<Record<Capabilities, Record<string, any>>>>() => ({
+          resolve: (
+            resolver: (ctx: {
+              actor: Actor
+              subject: Subject
+              args: ObjectToDiscriminatedUnion<
+                Omit<Record<Capabilities, undefined>, keyof Args> & Args
+              >
+            }) => Generator<Capabilities[], Capabilities[]>,
+          ) => resolver,
+        }),
+      }),
+    }),
   }
 }
+
+defineCapabilityResolverBuilder<{
+  name: string
+}>()
+  .subject<{ userId: string }>()
+  .capabilities<'read' | 'write'>()
+  .args<{
+    read: {
+      test: string
+    }
+    test: {
+      iatern: ''
+    }
+  }>()
+  .resolve(function* ({ actor, subject, args }) {
+    yield ['write']
+    return ['read']
+  })
 
 function defineCapabilityQueryBuilder<Resolver extends CapabilityResolver<any, any>>({
   resolver,
