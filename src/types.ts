@@ -1,3 +1,5 @@
+import type { Simplify } from 'type-fest'
+
 export type inferCapabilitiesFromResolver<E> = E extends string[]
   ? E[number]
   : E extends (...args: any[]) => infer R
@@ -10,10 +12,43 @@ export type inferCapabilitiesFromResolver<E> = E extends string[]
         : never
     : never
 
-export type CapabilityResolver<Args, CapabilityName> =
-  | ((args: Args) => CapabilityName[] | Generator<CapabilityName[], CapabilityName[]>)
-  | CapabilityName[]
+export type CapabilityResolver<Actor, Subject, Capabilities extends string, Args> = (
+  ctx: CapabilityResolverContext<Actor, Subject, Args>,
+) => Generator<Capabilities[], Capabilities[]>
 
-export type inferResolverArgs<Resolver> = [Resolver] extends [CapabilityResolver<infer Args, any>]
+export type ObjectToDiscriminatedUnion<T> =
+  T extends Record<string, Record<string, any>>
+    ? {
+        [K in keyof T]: undefined extends T[K]
+          ? {
+              capability: K
+            }
+          : T[K] & {
+              capability: K
+            }
+      }[keyof T]
+    : never
+
+export type CapabilityResolverContext<Actor, Subject, Args> = {
+  actor: Actor
+  subject: Subject
+  args: Simplify<ObjectToDiscriminatedUnion<Args>>
+}
+
+export type inferResolverContext<Resolver> = [Resolver] extends [
+  CapabilityResolver<infer Actor, infer Subject, any, infer Args>,
+]
+  ? CapabilityResolverContext<Actor, Subject, Args>
+  : never
+
+export type inferResolverArgs<Resolver> = [Resolver] extends [
+  CapabilityResolver<any, any, any, infer Args>,
+]
   ? Args
+  : never
+
+export type inferResolverCapabilities<Resolver> = [Resolver] extends [
+  CapabilityResolver<any, any, infer Capabilities, any>,
+]
+  ? Capabilities
   : never

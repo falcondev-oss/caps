@@ -1,113 +1,189 @@
-import type { CapabilityResolver, inferCapabilitiesFromResolver, inferResolverArgs } from './types'
+import type {
+  CapabilityResolver,
+  CapabilityResolverContext,
+  ObjectToDiscriminatedUnion,
+  inferCapabilitiesFromResolver,
+  inferResolverArgs,
+  inferResolverCapabilities,
+  inferResolverContext,
+} from './types'
+import type { Exact, Simplify } from 'type-fest'
 
-export interface DefineCapabilitiesForOptions {
-  createError?: (message: string) => void
+export interface CreateBuildContextOptions {
+  createError?: (message: string) => Error
 }
 
-// export function defineCapabilitiesFor<Actor>(actor: Actor, opts?: DefineCapabilitiesForOptions) {
-//   return <const CapabilityName extends string, Target = undefined>(
-//     resolver: CapabilityName[] | (),
-//   ) => {
-//     return defineCapabilityQueryBuilder({
-//       resolver: Array.isArray(resolver) ? resolver : resolver(actor),
-//       opts,
-//     })
-//   }
-// }
+export function arg<T extends object>() {
+  return {} as T
+}
 
-type ObjectToDiscriminatedUnion<T extends Record<string, Record<string, any> | undefined>> = {
-  [K in keyof T]: undefined extends T[K]
-    ? {
-        capability: K
-      }
-    : T[K] & {
-        capability: K
-      }
-}[keyof T]
+export function createBuildContext<Actor>(actor: Actor, opts?: CreateBuildContextOptions) {
+  function getDefine<Subject = undefined>() {
+    return <
+      const Capability extends string,
+      Args extends Exact<Partial<Record<Capability, any>>, Args>,
+      ArgsType = {
+        [K in keyof Args]: Args[K] extends (...args: any[]) => any ? ReturnType<Args[K]> : Args[K]
+      },
+    >(
+      resolver: (ctx: {
+        actor: Actor
+        subject: Subject
+        args: ObjectToDiscriminatedUnion<ArgsType>
+      }) => Generator<Capability[], Capability[]>,
+      args: Args,
+    ) =>
+      createCapabilityQueryBuilder<Subject, Capability, ArgsType>({
+        resolver,
+        actor,
+        opts,
+      })
+  }
 
-function defineCapabilityResolverBuilder<Actor>() {
   return {
     subject: <Subject>() => ({
-      capabilities: <Capabilities extends string>() => ({
-        args: <Args extends Partial<Record<Capabilities, Record<string, any>>>>() => ({
-          resolve: (
-            resolver: (ctx: {
-              actor: Actor
-              subject: Subject
-              args: ObjectToDiscriminatedUnion<
-                Omit<Record<Capabilities, undefined>, keyof Args> & Args
-              >
-            }) => Generator<Capabilities[], Capabilities[]>,
-          ) => resolver,
-        }),
-      }),
+      define: getDefine<Subject>(),
     }),
+    define: getDefine(),
   }
 }
 
-defineCapabilityResolverBuilder<{
-  name: string
-}>()
-  .subject<{ userId: string }>()
-  .capabilities<'read' | 'write'>()
-  .args<{
-    read: {
-      test: string
-    }
-    test: {
-      iatern: ''
-    }
-  }>()
-  .resolve(function* ({ actor, subject, args }) {
-    yield ['write']
-    return ['read']
-  })
-
-function defineCapabilityQueryBuilder<Resolver extends CapabilityResolver<any, any>>({
-  resolver,
-  opts,
-}: {
-  resolver: Resolver
-  opts?: DefineCapabilitiesForOptions
-}) {
-  function collect(args: inferResolverArgs<Resolver>): inferCapabilitiesFromResolver<Resolver>[] {
-    if (typeof resolver === 'function') {
-      const generatorOrCapabilities = resolver(args)
-
-      if (Array.isArray(generatorOrCapabilities)) {
-        // eslint-disable-next-line ts/no-unsafe-return
-        return generatorOrCapabilities
-      }
-
-      // eslint-disable-next-line ts/no-unsafe-return
-      return collectGenerator(generatorOrCapabilities)
-    }
-
-    // eslint-disable-next-line ts/no-unsafe-return
-    return resolver
-  }
-
-  type Args = inferResolverArgs<Resolver>
-
+function createCapabilityBuilder<Actor>() {
   return {
-    can: <Capability extends inferCapabilitiesFromResolver<Resolver>>(
-      capability: Capability,
-      ...args: undefined extends Args ? [args?: Args] : [args: Args]
-    ) => {
-      return {
-        check: (): boolean => collect(args[0] as Args).includes(capability),
-        throw: () => {
-          const checkSuccess = collect(args[0] as Args).includes(capability)
-          if (checkSuccess) return
-
-          const message = `User does not have capability ${capability}`
-
-          throw opts?.createError?.(message) ?? new Error(message)
-        },
+    define<D>(builder: (c: ReturnType<typeof createBuildContext<Actor>>) => D) {
+      return (actor: Actor, opts?: CreateBuildContextOptions) => {
+        return builder(createBuildContext(actor, opts))
       }
     },
   }
 }
+
+function createCapabilityQueryBuilder<Subject, Capabilities extends string, Args>({
+  actor,
+  resolver,
+  opts,
+}: {
+  actor: any
+  opts?: CreateBuildContextOptions
+  resolver: (ctx: {
+    actor: any
+    subject: any
+    args: ObjectToDiscriminatedUnion<Args>
+  }) => Generator<Capabilities[], Capabilities[]>
+}) {
+  type CanArgs<Capability> = Capability extends keyof Args
+    ? Args[Capability] extends undefined
+      ? []
+      : [args: Args[Capability]]
+    : []
+
+  function getCan(subject: Subject | undefined) {
+    return <Capability extends Capabilities>(
+      capability: Capability,
+      ...args: CanArgs<Capability>
+    ) => {
+      function getCapabilities() {
+        const generator = resolver({
+          // eslint-disable-next-line ts/no-unsafe-assignment
+          actor,
+          subject,
+          // eslint-disable-next-line ts/no-unsafe-assignment
+          args: {
+            capability,
+            ...(args[0] as any),
+          },
+        })
+
+        return collectGenerator(generator)
+      }
+
+      return {
+        throw: () => {
+          const actorCaps = getCapabilities()
+          if (actorCaps.includes(capability)) return
+
+          const message = `User does not have capability ${capability}`
+          throw opts?.createError?.(message) ?? new Error(message)
+        },
+        check: () => getCapabilities().includes(capability),
+      }
+    }
+  }
+
+  const builder = {
+    subject: (subject: Subject) => ({
+      can: getCan(subject),
+    }),
+    subjects: (subjects: Subject[]) => ({
+      canSome: <Capability extends Capabilities>(
+        capability: Capability,
+        ...args: CanArgs<Capability>
+      ) => {
+        return {
+          check: () => subjects.some((subject) => getCan(subject)(capability, ...args).check()),
+          throw: () => subjects.some((subject) => getCan(subject)(capability, ...args).throw()),
+        }
+      },
+      canEvery: <Capability extends Capabilities>(
+        capability: Capability,
+        ...args: CanArgs<Capability>
+      ) => {
+        return {
+          check: () => subjects.every((subject) => getCan(subject)(capability, ...args).check()),
+          throw: () => {
+            if (subjects.every((subject) => getCan(subject)(capability, ...args).check())) return
+
+            const message = 'User does not have capability'
+            throw opts?.createError?.(message) ?? new Error(message)
+          },
+        }
+      },
+    }),
+    can: getCan(undefined),
+  }
+
+  return builder as Omit<typeof builder, Subject extends undefined ? 'subject' : 'can'>
+}
+
+const useCaps = createCapabilityBuilder<{
+  permissions: string[]
+}>().define((c) => {
+  return {
+    absenceRequest: {
+      a: c
+        .subject<{
+          absenceRequestId: string
+        }>()
+        .define(
+          function* ({ actor, args, subject }) {
+            yield ['update']
+            return ['read', 'write']
+          },
+          {
+            update: arg<{
+              wow: string
+            }>,
+          },
+        ),
+      b: c.define(
+        function* ({ actor, args, subject }) {
+          yield ['read']
+          return ['write']
+        },
+        {
+          read: arg<{ hey: string }>,
+        },
+      ),
+    },
+  }
+})
+
+const caps = useCaps({ permissions: ['yes'] })
+
+caps.absenceRequest.a.subject({ absenceRequestId: '123' }).can('read')
+caps.absenceRequest.a.subjects([{ absenceRequestId: '123' }]).canSome('update', { wow: 'hey' })
+
+caps.absenceRequest.b.can('read', { hey: 'bob' })
 
 function collectGenerator<T>(generator: Generator<T, T>) {
   const items = []

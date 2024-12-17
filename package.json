@@ -31,7 +31,9 @@
     "lint:fix": "eslint --cache --fix . && prettier --cache --write .",
     "type-check": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "type-fest": "^4.30.2"
+  },
   "devDependencies": {
     "@louishaftmann/eslint-config": "^4.0.3",
     "@louishaftmann/prettier-config": "^4.0.3",

@@ -10,10 +10,14 @@ describe('runtime', () => {
     })
 
     const context = {
-      project: c((actor) => () => {
-        if (actor.role === 'admin') return ['delete']
-        return ['read', 'write']
-      }),
+      project: c
+        .subject()
+        .capabilities<'read' | 'write' | 'delete'>()
+        .args()
+        .resolve(function* ({ actor }) {
+          if (actor.role === 'admin') yield ['delete']
+          return ['read', 'write']
+        }),
     }
 
     expect(context.project.can('read').check()).toBe(true)
