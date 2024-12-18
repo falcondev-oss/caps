@@ -1,2 +1,2 @@
-export { type CreateBuildContextOptions, arg, createBuildContext } from './capability-builder'
+export { type ContextOptions, arg, createActor } from './capabilties'
 export * from './types'
