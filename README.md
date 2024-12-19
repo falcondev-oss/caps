@@ -11,46 +11,65 @@ npm add @falcondev-oss/caps
 ## Example
 
 ```typescript
-const user = await getUser() // { isAdmin: false, isSupervisor: false, supervisorOfUserIds: [] }
+type User = { userId: string; role: 'user' | 'moderator' | 'admin'; isBanned: boolean }
+type Post = { author: User }
 
-const c = defineCapabilitiesFor(user)
+const useActor = createActor<User>().build((cap) => ({
+  social: {
+    posts: cap.subject<Post>().define(
+      function* ({ actor, subject, args }) {
+        // banned users can't do anything
+        if (actor.isBanned || subject.author.isBanned) return []
 
-const capabilities = {
-  motd: c(['read']),
-  project: {
-    info: c(
-      (actor) =>
-        function* () {
-          if (actor.isAdmin) yield ['write']
+        // everyone can read posts
+        yield ['read']
 
-          return ['read']
-        },
-    ),
-    task: c(
-      (actor) =>
-        function* (user: { id: string }) {
-          if (actor.isAdmin) yield ['write']
+        // users can update & delete posts themselves
+        if (actor.userId === subject.author.userId) yield ['update', 'delete']
 
-          if (actor.isSupervisor && actor.superviserOfUserIds.includes(user.id)) yield ['write']
+        // admins can delete any post & ban users
+        if (actor.role === 'admin') {
+          yield ['delete', 'ban']
+        }
 
-          return ['read']
-        },
+        // moderators can only delete posts from users
+        if (actor.role === 'moderator' && subject.author.role === 'user') {
+          yield ['delete']
+
+          // moderators can also ban users temporarily
+          if (args.ban?.temporary) yield ['ban']
+        }
+
+        return []
+      },
+      {
+        ban: arg<{ temporary: boolean }>,
+      },
     ),
   },
-  user: c(
-    (actor) =>
-      function* () {
-        if (actor.isAdmin) yield ['delete']
-        if (actor.isSupervisor || actor.isAdmin) yield ['write']
+}))
 
-        return ['read']
-      },
-  ),
-}
+const Users = {
+  user1: { userId: '1', role: 'user', isBanned: false },
+  user2: { userId: '2', role: 'user', isBanned: false },
+  moderator: { userId: '3', role: 'moderator', isBanned: false },
+  admin: { userId: '4', role: 'admin', isBanned: false },
+} as const
 
-// check if user can read the message of the day
-capabilities.motd.can('read').check() // => true
+const user = useActor(Users.user1)
 
-// check if user can write task
-capabilities.project.task.can('write', { id: 'user1' }).check() // => false
+user.social.posts.subject({ author: Users.user2 }).can('read').check() // => true
+user.social.posts.subject({ author: Users.user1 }).can('update').check() // => true
+user.social.posts.subject({ author: Users.user2 }).can('delete').check() // => false
+
+const moderator = useActor(Users.moderator)
+
+moderator.social.posts.subject({ author: Users.user1 }).can('delete').check() // => true
+moderator.social.posts.subject({ author: Users.user1 }).can('update').check() // => false
+moderator.social.posts.subject({ author: Users.user1 }).can('ban', { temporary: false }).check() // => false
+moderator.social.posts.subject({ author: Users.user1 }).can('ban', { temporary: true }).check() // => true
+
+const admin = useActor(Users.admin)
+
+admin.social.posts.subject({ author: Users.user1 }).can('ban', { temporary: false }).check() // => true
 ```

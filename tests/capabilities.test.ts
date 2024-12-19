@@ -30,7 +30,7 @@ describe('user management demo', () => {
           if (args.delete?.delayed) yield ['delete']
         }
 
-        // moderators can set_role of other users & moderators
+        // moderators can only set_role of other users & moderators
         if (
           actor.role === 'moderator' &&
           (args.set_role?.role === 'user' || args.set_role?.role === 'moderator') &&
