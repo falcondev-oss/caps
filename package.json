@@ -1,7 +1,7 @@
 {
   "name": "@falcondev-oss/caps",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A simple library to handle permissions or access control through defining capabilities.",
   "license": "MIT",
   "repository": "github:falcondev-oss/caps",
