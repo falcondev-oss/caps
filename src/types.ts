@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-empty-file */
 // export type inferCapabilitiesFromResolver<E> = E extends string[]
 //   ? E[number]
 //   : E extends (...args: any[]) => infer R
