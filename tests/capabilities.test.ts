@@ -1,6 +1,31 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import { arg, createActor } from '../src/'
+
+test('minimal example', () => {
+  let i = 0
+  const useActor = createActor<{ a: 1 }>().build((cap) => ({
+    // eslint-disable-next-line unused-imports/no-unused-vars
+    a: cap.define(function* ({ actor, subject, args }) {
+      // eslint-disable-next-line ts/no-empty-object-type
+      expectTypeOf(args).toEqualTypeOf<{}>()
+
+      if (i === 0) expect(args).toEqual({})
+      if (i === 1) expect(args).toEqual({ not_defined: true })
+
+      i++
+      yield ['yield']
+      return ['return']
+    }),
+  }))
+
+  const caps = useActor({ a: 1 })
+
+  expect(caps.a.can('yield').check()).toBe(true)
+
+  // @ts-expect-error - don't allow args when no args are defined
+  expect(caps.a.can('yield', { not_defined: true }).check()).toBe(true)
+})
 
 describe('user management demo', () => {
   type Role = 'user' | 'moderator' | 'admin'

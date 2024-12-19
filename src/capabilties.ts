@@ -34,7 +34,8 @@ function createCapability<Actor>(actor: Actor, opts?: ContextOptions) {
   function getDefine<Subject = undefined>() {
     return <
       const Capability extends string,
-      Args extends Exact<Partial<Record<Capability, any>>, Args>,
+      // eslint-disable-next-line ts/no-empty-object-type
+      Args extends Exact<Partial<Record<Capability, any>>, Args> | {} = {},
       ArgsType = {
         [K in keyof Args]: Args[K] extends (...args: any[]) => any ? ReturnType<Args[K]> : Args[K]
       },
@@ -44,7 +45,7 @@ function createCapability<Actor>(actor: Actor, opts?: ContextOptions) {
         subject: Subject
         args: Partial<ArgsType>
       }) => Generator<Capability[], Capability[]>,
-      args: Args,
+      args?: Args,
     ) =>
       createQuery<Actor, Subject, Capability, ArgsType>({
         actor,
