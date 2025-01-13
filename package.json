@@ -2,7 +2,7 @@
   "name": "@falcondev-oss/caps",
   "type": "module",
   "version": "0.3.1",
-  "description": "A simple library to handle permissions or access control through defining capabilities.",
+  "description": "Simple, fully type-safe library to handle permissions/access control by defining capabilities with generators.",
   "license": "Apache-2.0",
   "repository": "github:falcondev-oss/caps",
   "bugs": {
@@ -12,6 +12,7 @@
     "permissions",
     "access control",
     "capabilities",
+    "generator",
     "typescript"
   ],
   "exports": {

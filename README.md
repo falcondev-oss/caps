@@ -2,7 +2,7 @@
 
 <a href="https://npmjs.org/package/@falcondev-oss/caps" title="View this project on NPM"><img src="https://img.shields.io/npm/v/@falcondev-oss/caps.svg" alt="NPM version" /></a>
 
-Simple **`100% type-safe`** access control library.
+Simple, **fully type-safe** library to handle permissions/access control by defining capabilities with generators.
 
 ## Installation
 
