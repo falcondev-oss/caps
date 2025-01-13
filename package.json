@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.3.1",
   "description": "A simple library to handle permissions or access control through defining capabilities.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": "github:falcondev-oss/caps",
   "bugs": {
     "url": "https://github.com/falcondev-oss/caps/issues"
@@ -17,7 +17,6 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     }
