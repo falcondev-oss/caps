@@ -1,4 +1,4 @@
-import type { Exact } from 'type-fest'
+import type { Exact, IfEmptyObject } from 'type-fest'
 
 export function arg<T extends object>() {
   return {} as T
@@ -81,7 +81,7 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
       : [args: Args[Capability]]
     : []
 
-  function list({ subject, args }: { subject: Subject; args: Partial<Args> }) {
+  function list({ subject, args = {} }: { subject: Subject; args?: Partial<Args> }) {
     const generator = resolver({
       actor,
       subject,
@@ -115,8 +115,11 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
   const query = {
     subject: (subject: Subject) => ({
       can: getCan(subject),
-      list(args: Partial<Args>) {
-        return list({ subject, args })
+      list(args: IfEmptyObject<Args, void, Partial<Args>>) {
+        return list({
+          subject,
+          args: args as Partial<Args> | undefined,
+        })
       },
     }),
     subjects: (subjects: Subject[]) => ({
@@ -147,8 +150,11 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
       },
     }),
     can: getCan(undefined as Subject),
-    list(args: Partial<Args>) {
-      return list({ subject: undefined as Subject, args })
+    list(args: IfEmptyObject<Args, void, Partial<Args>>) {
+      return list({
+        subject: undefined as Subject,
+        args: args as Partial<Args> | undefined,
+      })
     },
   }
 
