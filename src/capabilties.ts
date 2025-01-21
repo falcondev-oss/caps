@@ -1,5 +1,7 @@
 import type { Exact, IfEmptyObject, TaggedUnion } from 'type-fest'
 
+import { intersection } from 'remeda'
+
 export type Modes<T extends Record<string, Record<string, unknown>>> = TaggedUnion<'__mode', T>
 
 export function mode<const K extends string, T extends Record<string, unknown>>(
@@ -156,6 +158,21 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
             )
           },
         }
+      },
+      filter: <FilterCaps extends Capabilities>(
+        capabilities: FilterCaps[],
+        args: IfEmptyObject<Args, void, Partial<Args>>,
+      ) => {
+        return subjects.filter(
+          (subject) =>
+            intersection(
+              list({
+                subject,
+                args: args as Partial<Args> | undefined,
+              }),
+              capabilities,
+            ).length === capabilities.length,
+        )
       },
     }),
     can: getCan(undefined as Subject),

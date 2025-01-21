@@ -22,9 +22,10 @@ test('minimal example', () => {
   const caps = useActor({ a: 1 })
 
   expect(caps.a.can('yield').check()).toBe(true)
-
   // @ts-expect-error - don't allow args when no args are defined
   expect(caps.a.can('yield', { not_defined: true }).check()).toBe(true)
+
+  expect(caps.a.list()).toEqual(['yield', 'return'])
 })
 
 describe('user management demo', () => {
@@ -74,23 +75,37 @@ describe('user management demo', () => {
   }))
 
   test('user', () => {
-    const caps = useActor({ userId: '1', role: 'user' })
+    const selfUserData = { userId: '1', role: 'user' } as const
+    const otherUserData = { userId: '2', role: 'user' } as const
 
-    const selfUser = caps.user.subject({ userId: '1', role: 'user' })
-    const otherUser = caps.user.subject({ userId: '2', role: 'user' })
+    const caps = useActor(selfUserData)
+
+    const selfUser = caps.user.subject(selfUserData)
+    const otherUser = caps.user.subject(otherUserData)
 
     expect(selfUser.can('read').check()).toBe(true)
     expect(selfUser.can('update').check()).toBe(true)
     expect(selfUser.can('delete', { delayed: false }).check()).toBe(true)
 
     expect(otherUser.list({})).toEqual(['read'])
+
+    expect(caps.user.subjects([selfUserData, otherUserData]).filter(['update'], {})).toEqual([
+      selfUserData,
+    ])
+    expect(caps.user.subjects([selfUserData, otherUserData]).filter(['read'], {})).toEqual([
+      selfUserData,
+      otherUserData,
+    ])
   })
 
   test('admin', () => {
-    const caps = useActor({ userId: '1', role: 'admin' })
+    const selfUserData = { userId: '1', role: 'admin' } as const
+    const otherUserData = { userId: '2', role: 'user' } as const
 
-    const selfUser = caps.user.subject({ userId: '1', role: 'user' })
-    const otherUser = caps.user.subject({ userId: '2', role: 'user' })
+    const caps = useActor(selfUserData)
+
+    const selfUser = caps.user.subject(selfUserData)
+    const otherUser = caps.user.subject(otherUserData)
 
     expect(selfUser.can('create').check()).toBe(true)
     expect(selfUser.can('update').check()).toBe(true)
@@ -103,5 +118,11 @@ describe('user management demo', () => {
         set_role: { role: 'admin' },
       }),
     ).toEqual(['read', 'create', 'update', 'set_role', 'delete'])
+
+    expect(
+      caps.user
+        .subjects([selfUserData, otherUserData])
+        .filter(['delete'], { delete: { delayed: true } }),
+    ).toEqual([selfUserData, otherUserData])
   })
 })

@@ -1,2 +1,2 @@
-export { type ContextOptions, arg, createActor } from './capabilties'
+export { arg, type ContextOptions, createActor } from './capabilties'
 export * from './types'
