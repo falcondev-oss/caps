@@ -18,7 +18,7 @@ export interface ContextOptions {
   createError?: (args: { capability: string }) => unknown
 }
 
-export function createActor<Actor>() {
+export function createActor<Actor extends object>() {
   return {
     build<D>(builder: (cap: ReturnType<typeof createCapability<Actor>>) => D) {
       return (actor: Actor, opts?: ContextOptions) => {
@@ -120,7 +120,7 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
         })
       },
     }),
-    subjects: (subjects: Subject[]) => ({
+    subjects: <const S extends Subject>(subjects: S[]) => ({
       canSome: <Capability extends Capabilities>(
         capability: Capability,
         ...args: HasArgs<Capability>
@@ -146,7 +146,7 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
           },
         }
       },
-      filter: <FilterCaps extends Capabilities>(
+      filter: <const FilterCaps extends Capabilities>(
         capabilities: FilterCaps[],
         args: IfEmptyObject<Args, void, Partial<Args>>,
       ) => {

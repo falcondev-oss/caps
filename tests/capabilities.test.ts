@@ -1,6 +1,7 @@
-import { describe, expect, expectTypeOf, test } from 'vitest'
+import { range } from 'remeda'
 
-import { arg, createActor } from '../src/'
+import { describe, expect, expectTypeOf, test } from 'vitest'
+import { arg, createActor, mode, type Modes } from '../src/'
 
 test('minimal example', () => {
   let i = 0
@@ -26,6 +27,28 @@ test('minimal example', () => {
   expect(caps.a.can('yield', { not_defined: true }).check()).toBe(true)
 
   expect(caps.a.list()).toEqual(['yield', 'return'])
+})
+
+test('modes', () => {
+  const useActor = createActor().build((cap) => ({
+    a: cap
+      .subject<
+        Modes<{
+          a: { a: number }
+          b: { b: number }
+        }>
+      >()
+      .define(function* () {
+        yield ['read']
+        return []
+      }),
+  }))
+
+  const caps = useActor({})
+
+  const filtered = caps.a.subjects(range(1, 5).map((i) => mode('b', { b: i }))).filter(['read'])
+
+  expectTypeOf(filtered).toMatchTypeOf<{ b: number }[]>()
 })
 
 describe('user management demo', () => {
