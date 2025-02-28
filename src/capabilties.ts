@@ -1,6 +1,6 @@
 import type { Exact, IfEmptyObject } from 'type-fest'
 
-import { intersection } from 'remeda'
+import * as R from 'remeda'
 
 function collectGenerator<T>(generator: Generator<T, T>) {
   const items = []
@@ -27,6 +27,8 @@ export function createActor<Actor extends object>() {
     },
   }
 }
+
+const filterInputSymbol = Symbol('filterInput')
 
 function createCapability<Actor>(actor: Actor, opts?: ContextOptions) {
   function getDefine<Subject = undefined>() {
@@ -120,48 +122,66 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
         })
       },
     }),
-    subjects: <const S extends Subject>(subjects: S[]) => ({
-      canSome: <Capability extends Capabilities>(
-        capability: Capability,
-        ...args: HasArgs<Capability>
-      ) => {
-        return {
-          check: () => subjects.some((subject) => getCan(subject)(capability, ...args).check()),
-          throw: () => subjects.some((subject) => getCan(subject)(capability, ...args).throw()),
-        }
-      },
-      canEvery: <Capability extends Capabilities>(
-        capability: Capability,
-        ...args: HasArgs<Capability>
-      ) => {
-        return {
-          check: () => subjects.every((subject) => getCan(subject)(capability, ...args).check()),
-          throw: () => {
-            if (subjects.every((subject) => getCan(subject)(capability, ...args).check())) return
+    subjects: <const S>(
+      subjects: S[],
+      ...args: S extends Subject ? [] : [mapper: (s: S) => Subject]
+    ) => {
+      const mapper = args[0]
+      const mappedSubjects = mapper ? subjects.map(mapper) : (subjects as unknown as Subject[])
 
-            throw (
-              opts?.createError?.({ capability }) ??
-              new Error(`Missing capability: '${capability}'`)
+      return {
+        canSome: <Capability extends Capabilities>(
+          capability: Capability,
+          ...args: HasArgs<Capability>
+        ) => {
+          return {
+            check: () =>
+              mappedSubjects.some((subject) => getCan(subject)(capability, ...args).check()),
+            throw: () =>
+              mappedSubjects.some((subject) => getCan(subject)(capability, ...args).throw()),
+          }
+        },
+        canEvery: <Capability extends Capabilities>(
+          capability: Capability,
+          ...args: HasArgs<Capability>
+        ) => {
+          return {
+            check: () =>
+              mappedSubjects.every((subject) => getCan(subject)(capability, ...args).check()),
+            throw: () => {
+              if (mappedSubjects.every((subject) => getCan(subject)(capability, ...args).check()))
+                return
+
+              throw (
+                opts?.createError?.({ capability }) ??
+                new Error(`Missing capability: '${capability}'`)
+              )
+            },
+          }
+        },
+        filter: <const FilterCaps extends Capabilities>(
+          capabilities: FilterCaps[],
+          args: IfEmptyObject<Args, void, Partial<Args>>,
+        ) => {
+          return subjects
+            .map((s) => ({
+              ...(mapper ? mapper(s) : (s as unknown as Subject)),
+              [filterInputSymbol]: s,
+            }))
+            .filter(
+              (subject) =>
+                R.intersection(
+                  list({
+                    subject,
+                    args: args as Partial<Args> | undefined,
+                  }),
+                  capabilities,
+                ).length === capabilities.length,
             )
-          },
-        }
-      },
-      filter: <const FilterCaps extends Capabilities>(
-        capabilities: FilterCaps[],
-        args: IfEmptyObject<Args, void, Partial<Args>>,
-      ) => {
-        return subjects.filter(
-          (subject) =>
-            intersection(
-              list({
-                subject,
-                args: args as Partial<Args> | undefined,
-              }),
-              capabilities,
-            ).length === capabilities.length,
-        )
-      },
-    }),
+            .map((s) => s[filterInputSymbol])
+        },
+      }
+    },
     can: getCan(undefined as Subject),
     list(args: IfEmptyObject<Args, void, Partial<Args>>) {
       return list({

@@ -46,9 +46,9 @@ test('modes', () => {
 
   const caps = useActor({})
 
-  const filtered = caps.a.subjects(range(1, 5).map((i) => mode('b', { b: i }))).filter(['read'])
+  const filtered = caps.a.subjects(range(1, 5), (i) => mode('b', { b: i })).filter(['read'])
 
-  expectTypeOf(filtered).toMatchTypeOf<{ b: number }[]>()
+  expectTypeOf(filtered).toMatchTypeOf<number[]>()
 })
 
 describe('user management demo', () => {
