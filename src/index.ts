@@ -1,6 +1,6 @@
 import type { TaggedUnion } from 'type-fest'
 
-export { type ContextOptions, createActor } from './capabilties'
+export { type ContextOptions, createActor, MissingCapabilityError } from './capabilties'
 
 export function arg<T extends object>() {
   return {} as T

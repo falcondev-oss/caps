@@ -1,6 +1,7 @@
+import * as R from 'remeda'
+
 import type { Exact, IfEmptyObject } from 'type-fest'
 
-import * as R from 'remeda'
 
 function collectGenerator<T>(generator: Generator<T, T>) {
   const items = []
@@ -62,6 +63,13 @@ function createCapability<Actor>(actor: Actor, opts?: ContextOptions) {
   }
 }
 
+export class MissingCapabilityError extends Error {
+  constructor(capability: string) {
+    super(`Missing capability: '${capability}'`)
+    this.name = 'MissingCapabilityError'
+  }
+}
+
 function createQuery<Actor, Subject, Capabilities extends string, Args>({
   actor,
   resolver,
@@ -104,7 +112,7 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
           if (actorCaps.includes(capability)) return
 
           throw (
-            opts?.createError?.({ capability }) ?? new Error(`Missing capability: '${capability}'`)
+            opts?.createError?.({ capability }) ?? new MissingCapabilityError(capability)
           )
         },
         check: () => getCapabilities().includes(capability),
@@ -154,7 +162,7 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
 
               throw (
                 opts?.createError?.({ capability }) ??
-                new Error(`Missing capability: '${capability}'`)
+                new MissingCapabilityError(capability)
               )
             },
           }
