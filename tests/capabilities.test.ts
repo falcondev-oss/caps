@@ -1,7 +1,8 @@
-import { range } from 'remeda'
+import type { Modes } from '../src/'
 
+import { range } from 'remeda'
 import { describe, expect, expectTypeOf, test } from 'vitest'
-import { arg, createActor, MissingCapabilityError, mode, type Modes } from '../src/'
+import { arg, createActor, MissingCapabilityError, mode } from '../src/'
 
 test('minimal example', () => {
   let i = 0
@@ -112,7 +113,7 @@ describe('user management demo', () => {
 
     expect(otherUser.list({})).toEqual(['read'])
     expect(() => otherUser.can('update').throw()).toThrow(MissingCapabilityError)
-    expect(() => otherUser.can('update').throw()).toThrow('Missing capability: \'update\'')
+    expect(() => otherUser.can('update').throw()).toThrow("Missing capability: 'update'")
 
     expect(caps.user.subjects([selfUserData, otherUserData]).filter(['update'], {})).toEqual([
       selfUserData,

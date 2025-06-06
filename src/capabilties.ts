@@ -1,7 +1,6 @@
-import * as R from 'remeda'
-
 import type { Exact, IfEmptyObject } from 'type-fest'
 
+import * as R from 'remeda'
 
 function collectGenerator<T>(generator: Generator<T, T>) {
   const items = []
@@ -111,9 +110,7 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
           const actorCaps = list({ subject, args: args[0]! })
           if (actorCaps.includes(capability)) return
 
-          throw (
-            opts?.createError?.({ capability }) ?? new MissingCapabilityError(capability)
-          )
+          throw opts?.createError?.({ capability }) ?? new MissingCapabilityError(capability)
         },
         check: () => getCapabilities().includes(capability),
       }
@@ -140,6 +137,7 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
       return {
         canSome: <Capability extends Capabilities>(
           capability: Capability,
+          // eslint-disable-next-line no-shadow
           ...args: HasArgs<Capability>
         ) => {
           return {
@@ -151,6 +149,7 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
         },
         canEvery: <Capability extends Capabilities>(
           capability: Capability,
+          // eslint-disable-next-line no-shadow
           ...args: HasArgs<Capability>
         ) => {
           return {
@@ -160,15 +159,13 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
               if (mappedSubjects.every((subject) => getCan(subject)(capability, ...args).check()))
                 return
 
-              throw (
-                opts?.createError?.({ capability }) ??
-                new MissingCapabilityError(capability)
-              )
+              throw opts?.createError?.({ capability }) ?? new MissingCapabilityError(capability)
             },
           }
         },
         filter: <const FilterCaps extends Capabilities>(
           capabilities: FilterCaps[],
+          // eslint-disable-next-line no-shadow
           args: IfEmptyObject<Args, void, Partial<Args>>,
         ) => {
           return subjects

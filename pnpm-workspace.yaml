@@ -1,2 +1,6 @@
 onlyBuiltDependencies:
   - esbuild
+
+publicHoistPattern:
+  - eslint-plugin-*
+  - '@prettier/plugin-*'
