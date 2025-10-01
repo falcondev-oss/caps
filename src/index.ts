@@ -1,4 +1,4 @@
-import type { TaggedUnion } from 'type-fest'
+import type { Arrayable, TaggedUnion } from 'type-fest'
 
 export { type ContextOptions, createActor, MissingCapabilityError } from './capabilties'
 
@@ -8,9 +8,22 @@ export function arg<T extends object>() {
 
 export type Modes<T extends Record<string, Record<string, unknown>>> = TaggedUnion<'__mode', T>
 
-export function mode<const K extends string, T extends Record<string, unknown>>(
-  key: K,
+function modeFn<const M extends string, T extends Record<string, unknown>>(
+  mode: M,
   obj: T,
-): { __mode: K } & T {
-  return { __mode: key, ...obj }
+): { __mode: M } & T
+function modeFn<const M extends string, T extends Record<string, unknown>[]>(
+  mode: M,
+  list: T,
+): { [K in keyof T & number]: { __mode: K } & T[K] }[keyof T & number][]
+function modeFn<const M extends string, T extends Arrayable<Record<string, unknown>>>(
+  mode: M,
+  data: T,
+) {
+  if (Array.isArray(data)) {
+    return data.map((o) => ({ __mode: mode, ...o }))
+  }
+  return { __mode: mode, ...data }
 }
+
+export { modeFn as mode }
