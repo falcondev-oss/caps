@@ -1,4 +1,4 @@
-import type { Exact, IfEmptyObject } from 'type-fest'
+import type { Exact, If, IsEmptyObject } from 'type-fest'
 
 import * as R from 'remeda'
 
@@ -120,7 +120,7 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
   const query = {
     subject: (subject: Subject) => ({
       can: getCan(subject),
-      list(args: IfEmptyObject<Args, void, Partial<Args>>) {
+      list(args: If<IsEmptyObject<Args>, void, Partial<Args>>) {
         return list({
           subject,
           args: args as Partial<Args> | undefined,
@@ -166,7 +166,7 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
         filter: <const FilterCaps extends Capabilities>(
           capabilities: FilterCaps[],
           // eslint-disable-next-line no-shadow
-          args: IfEmptyObject<Args, void, Partial<Args>>,
+          args: If<IsEmptyObject<Args>, void, Partial<Args>>,
         ) => {
           return subjects
             .map((s) => ({
@@ -188,7 +188,7 @@ function createQuery<Actor, Subject, Capabilities extends string, Args>({
       }
     },
     can: getCan(undefined as Subject),
-    list(args: IfEmptyObject<Args, void, Partial<Args>>) {
+    list(args: If<IsEmptyObject<Args>, void, Partial<Args>>) {
       return list({
         subject: undefined as Subject,
         args: args as Partial<Args> | undefined,
