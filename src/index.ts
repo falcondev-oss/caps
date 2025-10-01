@@ -15,7 +15,7 @@ function modeFn<const M extends string, T extends Record<string, unknown>>(
 function modeFn<const M extends string, T extends Record<string, unknown>[]>(
   mode: M,
   list: T,
-): { [K in keyof T & number]: { __mode: K } & T[K] }[keyof T & number][]
+): { [K in keyof T & number]: { __mode: M } & T[K] }[keyof T & number][]
 function modeFn<const M extends string, T extends Arrayable<Record<string, unknown>>>(
   mode: M,
   data: T,
